@@ -1,99 +1,52 @@
 import React, { useState, useEffect } from 'react';
+import NavBar from './components/NavBar';
+import AuthModal from './components/AuthModal';
+import PaymentModal from './components/PaymentModal';
+import RoomDetailsModal from './components/RoomDetailsModal';
+import BookingHistory from './components/BookingHistory';
+import About from './components/About';
+import Facilities from './components/Facilities';
+import Rooms from './components/Rooms';
+import FAQ from './components/FAQ';
+import Footer from './components/Footer';
 import './style.css';
 
-/**
- * Backend Integration Guide
- * 
- * Required API Endpoints:
- * 1. Authentication
- *    - POST /api/auth/login: { username, studentId }
- *    - POST /api/auth/register: { username, studentId, email }
- *  
- * 2. Rooms
- *    - GET /api/rooms: List all rooms with availability
- *    - GET /api/rooms/{id}: Get room details
- *    - GET /api/rooms/{id}/availability: Check real-time bedspace availability
- * 
- * 3. Bookings
- *    - POST /api/bookings: Create new booking
- *    - GET /api/bookings/user/{userId}: Get user's booking history
- *    - PUT /api/bookings/{id}: Update booking status
- * 
- * 4. Payments
- *    - POST /api/payments: Process payment
- *    - GET /api/payments/methods: List available payment methods
- * 
- * Data Structures:
- * 1. Room: {
- *    id: string
- *    name: string
- *    type: string
- *    floor: string
- *    price: number
- *    totalBedspaces: number
- *    availableBedspaces: number
- *    images: string[]
- *    desc: string
- * }
- * 
- * 2. Booking: {
- *    id: string
- *    userId: string
- *    roomId: string
- *    bedspace: number
- *    status: string
- *    paymentStatus: string
- *    academicYear: string
- *    price: number
- * }
- * 
- * Error Handling:
- * All API responses should include:
- * - success: boolean
- * - message: string
- * - data?: any
- */
-
 function App() {
-  // User state
+  // Authentication and user state
   const [user, setUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authTab, setAuthTab] = useState('login');
   const [showProfile, setShowProfile] = useState(false);
-  
-  // FAQ state
-  const [activeFaq, setActiveFaq] = useState(null);
-  // Booking history modal state
-  const [showHistory, setShowHistory] = useState(false);
-  // Room details modal state
-  const [showRoomDetails, setShowRoomDetails] = useState(false);
+
+  // Room listing state
+  const [rooms, setRooms] = useState([]);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [showRoomDetails, setShowRoomDetails] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample booking history data
-  const bookingHistory = [
-    { room: '2 in 1 Room', year: '2024/2025', status: 'Confirmed', price: 10000 },
-    { room: '3 in 1 Room', year: '2023/2024', status: 'Completed', price: 8500 },
-  ];
-
-  // Open booking history modal
-  const openHistory = () => setShowHistory(true);
-  const closeHistory = () => setShowHistory(false);
-
-  // Open room details modal
-  const openRoomDetails = (room) => {
-    setSelectedRoom(room);
-    setShowRoomDetails(true);
-  };
-  const closeRoomDetails = () => setShowRoomDetails(false);
-  // Room filter state
+  // Room filters
   const [roomType, setRoomType] = useState('');
   const [roomFloor, setRoomFloor] = useState('');
   const [roomPrice, setRoomPrice] = useState('');
   const [roomAvailability, setRoomAvailability] = useState('');
   const [roomSearch, setRoomSearch] = useState('');
 
-  // Room data state and fetching
-  const [rooms, setRooms] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Booking and payment state
+  const [bookingHistory, setBookingHistory] = useState([
+    { room: '2 in 1 Room', year: '2024/2025', status: 'Confirmed', price: 10000 },
+    { room: '3 in 1 Room', year: '2023/2024', status: 'Completed', price: 8500 }
+  ]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('');
+  const [roomForPayment, setRoomForPayment] = useState(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [bookingStatus, setBookingStatus] = useState({ status: '', message: '' });
+
+  // UI state for modals and information
+  const [showMoreInfo, setShowMoreInfo] = useState(false);
+  const [moreInfoType, setMoreInfoType] = useState('');
 
   // Fetch rooms data on component mount
   useEffect(() => {
@@ -203,9 +156,6 @@ function App() {
     e.preventDefault();
     // No-op, filters are live
   };
-  // Modal state
-  const [showModal, setShowModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('login');
 
   // Smooth scroll for nav links
   const handleNavClick = (e, id) => {
@@ -216,17 +166,17 @@ function App() {
     }
   };
 
-  // Open modal (for Book Now, Book Your Room, Login/Register)
-  const openModal = (tab = 'login') => {
-    setActiveTab(tab);
-    setShowModal(true);
+  // Open auth modal (for Book Now, Book Your Room, Login/Register)
+  const openAuthModal = (tab = 'login') => {
+    setAuthTab(tab);
+    setShowAuthModal(true);
   };
 
-  // Close modal
-  const closeModal = () => setShowModal(false);
+  // Close auth modal
+  const closeAuthModal = () => setShowAuthModal(false);
 
-  // Switch between login/register tabs
-  const handleTabSwitch = (tab) => setActiveTab(tab);
+  // Switch between login/register tabs in auth modal
+  const handleAuthTabSwitch = (tab) => setAuthTab(tab);
 
   // Login/Register handlers
   const handleLogin = async (e) => {
@@ -285,15 +235,11 @@ function App() {
     setShowProfile(false);
   };
 
-  // Payment selection state
-  const [showPayment, setShowPayment] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState('');
-  const [roomForPayment, setRoomForPayment] = useState(null);
-
   // Book Now button handler
   const handleBookNow = (room) => {
     if (!room) {
-      openModal('register');
+      setActiveTab('register');
+      setShowModal(true);
       return;
     }
     setRoomForPayment(room);
@@ -302,16 +248,12 @@ function App() {
 
   // Handle payment selection
   const handlePaymentSelect = (method) => {
-    setSelectedPayment(method);
+    setSelectedPaymentMethod(method);
   };
-
-  // Payment and booking states
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [bookingStatus, setBookingStatus] = useState({ status: '', message: '' });
 
   // Handle payment submission
   const handlePaymentSubmit = async () => {
-    if (!selectedPayment) {
+    if (!selectedPaymentMethod) {
       setBookingStatus({
         status: 'error',
         message: 'Please select a payment method'
@@ -421,10 +363,6 @@ function App() {
     }
   };
 
-  // Explore/Discover More Modal state
-  const [showMoreInfo, setShowMoreInfo] = useState(false);
-  const [moreInfoType, setMoreInfoType] = useState('');
-
   // Handler for Explore/Discover More buttons
   const handleMoreInfo = (type) => {
     setMoreInfoType(type);
@@ -435,89 +373,122 @@ function App() {
 
   return (
     <>
-      {/* Header and Navigation */}
-      <header className="header">
-        <nav>
-          <div className="nav__bar">
-            <div className="logo">
-              <a href="#" onClick={e => handleNavClick(e, 'home')}><img src="/assets/logo.png" alt="Twelve Hostel Logo" /></a>
-            </div>
-            <div className="nav__menu__btn" id="menu-btn">
-              <i className="ri-menu-line"></i>
-            </div>
-          </div>
-          <ul className="nav__links" id="nav-links">
-            <li><a href="#home" onClick={e => handleNavClick(e, 'home')}>Home</a></li>
-            <li><a href="#about" onClick={e => handleNavClick(e, 'about')}>About</a></li>
-            <li><a href="#service" onClick={e => handleNavClick(e, 'service')}>Facilities</a></li>
-            <li><a href="#contact" onClick={e => handleNavClick(e, 'contact')}>Contact</a></li>
-          </ul>
-          {user ? (
-            <>
-              <button className="btn nav__btn" onClick={handleProfileClick} style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
-                <i className="ri-user-line"></i>
-                {user.username}
-              </button>
-              <button className="btn nav__btn" onClick={handleLogout}>Logout</button>
-            </>
-          ) : (
-            <>
-              <button className="btn nav__btn" id="book-room-btn" type="button" onClick={() => openModal('register')}>Book Your Room</button>
-              <button className="btn nav__btn" id="login-btn" type="button" onClick={() => openModal('login')}>Login / Register</button>
-            </>
-          )}
-        </nav>
-        <div className="section__container header__container" id="home">
-          <p>Welcome to Twelve Hostel – Your Student Home</p>
-          <h1>Book Your Room<br /><span>Twelve Hostel</span> Today!</h1>
-        </div>
-      </header>
+      {/* Navigation */}
+      <NavBar 
+        user={user}
+        onLogin={() => {
+          setActiveTab('login');
+          setShowModal(true);
+        }}
+        onRegister={() => {
+          setActiveTab('register');
+          setShowModal(true);
+        }}
+        onLogout={handleLogout}
+        onProfileClick={() => setShowProfile(true)}
+        onNavClick={handleNavClick}
+      />
 
-      {/* Login/Registration Modal */}
-      {showModal && (
-        <div className="login-modal" style={{display:'flex',position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.5)',zIndex:1000,alignItems:'center',justifyContent:'center'}}>
-          <div className="login-modal-content">
-            <div style={{display:'flex',justifyContent:'center',marginBottom:'2rem'}}>
-              <button
-                className={`btn tab-btn${activeTab==='login' ? ' active' : ''}`}
-                type="button"
-                style={{flex:1,marginRight:'0.5rem',borderRadius:'8px 0 0 8px'}}
-                onClick={() => handleTabSwitch('login')}
-              >Login</button>
-              <button
-                className={`btn tab-btn${activeTab==='register' ? ' active' : ''}`}
-                type="button"
-                style={{flex:1,borderRadius:'0 8px 8px 0'}}
-                onClick={() => handleTabSwitch('register')}
-              >Register</button>
-            </div>
-            <form
-              id="loginForm"
-              style={{marginBottom:'1.5rem',display:activeTab==='login'?'block':'none',transition:'all 0.3s'}}
-              onSubmit={handleLogin}
-            >
-              <h2 style={{marginBottom:'1.5rem',color:'#2d3748',fontWeight:600}}>Login to Your Account</h2>
-              <input type="text" id="login-username" placeholder="Username or Email" style={{width:'92%',marginBottom:'1rem',padding:'0.75rem',borderRadius:'6px',border:'1px solid #e2e8f0',fontSize:'1rem'}} required />
-              <input type="text" id="login-studentid" placeholder="Student ID" style={{width:'92%',marginBottom:'1rem',padding:'0.75rem',borderRadius:'6px',border:'1px solid #e2e8f0',fontSize:'1rem'}} required />
-              <input type="password" id="login-password" placeholder="Password" style={{width:'92%',marginBottom:'1rem',padding:'0.75rem',borderRadius:'6px',border:'1px solid #e2e8f0',fontSize:'1rem'}} required />
-              <button className="btn" type="submit" style={{width:'92%',marginBottom:'0.5rem',background:'#2563eb',color:'#fff',fontWeight:500,fontSize:'1rem'}}>Login</button>
-            </form>
-            <form
-              id="registerForm"
-              style={{marginBottom:'1.5rem',display:activeTab==='register'?'block':'none',transition:'all 0.3s'}}
-              onSubmit={handleRegister}
-            >
-              <h2 style={{marginBottom:'1.5rem',color:'#2d3748',fontWeight:600}}>Create a New Account</h2>
-              <input type="text" id="register-username" placeholder="Username" style={{width:'92%',marginBottom:'1rem',padding:'0.75rem',borderRadius:'6px',border:'1px solid #e2e8f0',fontSize:'1rem'}} required />
-              <input type="text" id="register-studentid" placeholder="Student ID" style={{width:'92%',marginBottom:'1rem',padding:'0.75rem',borderRadius:'6px',border:'1px solid #e2e8f0',fontSize:'1rem'}} required />
-              <input type="email" id="register-email" placeholder="Email" style={{width:'92%',marginBottom:'1rem',padding:'0.75rem',borderRadius:'6px',border:'1px solid #e2e8f0',fontSize:'1rem'}} required />
-              <input type="password" id="register-password" placeholder="Password" style={{width:'92%',marginBottom:'1rem',padding:'0.75rem',borderRadius:'6px',border:'1px solid #e2e8f0',fontSize:'1rem'}} required />
-              <button className="btn" type="submit" style={{width:'92%',background:'#059669',color:'#fff',fontWeight:500,fontSize:'1rem'}}>Register</button>
-            </form>
-            <button className="btn" style={{background:'#f3f4f6',color:'#333',marginTop:'1rem',borderRadius:'8px'}} onClick={closeModal}>Close</button>
-          </div>
-        </div>
-      )}
+      {/* Main Content */}
+      <main>
+        <About onDiscover={() => handleMoreInfo('about')} />
+        <Facilities onExplore={() => handleMoreInfo('explore')} />
+        <Rooms 
+          rooms={filteredRooms}
+          loading={loading}
+          error={error}
+          filters={{
+            roomType,
+            roomFloor,
+            roomPrice,
+            roomAvailability,
+            roomSearch
+          }}
+          onFilterChange={{
+            onTypeChange: setRoomType,
+            onFloorChange: setRoomFloor,
+            onPriceChange: setRoomPrice,
+            onAvailabilityChange: setRoomAvailability,
+            onSearchChange: setRoomSearch
+          }}
+          onRoomSelect={room => {
+            setSelectedRoom(room);
+            setShowRoomDetails(true);
+          }}
+          onBookNow={room => {
+            if (!user) {
+              setActiveTab('login');
+              setShowModal(true);
+            } else {
+              setShowPayment(true);
+              setRoomForPayment(room);
+            }
+          }}
+          onViewHistory={() => setShowHistory(true)}
+        />
+        <FAQ />
+      </main>
+
+      {/* Footer */}
+      <Footer onNavClick={handleNavClick} />
+
+      {/* Modals */}
+      <AuthModal 
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        activeTab={activeTab}
+        onTabSwitch={setActiveTab}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+      />
+
+      <PaymentModal
+        isOpen={showPayment}
+        onClose={() => {
+          setShowPayment(false);
+          setSelectedPayment('');
+          setRoomForPayment(null);
+        }}
+        room={roomForPayment}
+        selectedPayment={selectedPayment}
+        onPaymentSelect={handlePaymentSelect}
+        onPaymentSubmit={handlePaymentSubmit}
+        isProcessing={isProcessing}
+        bookingStatus={bookingStatus}
+      />
+
+      <RoomDetailsModal 
+        isOpen={showRoomDetails}
+        onClose={() => setShowRoomDetails(false)}
+        room={selectedRoom}
+        onImageSelect={(img) => setSelectedRoom(prev => ({...prev, img}))}
+        onBook={() => {
+          setShowRoomDetails(false);
+          if (!user) {
+            setActiveTab('login');
+            setShowModal(true);
+          } else {
+            setShowPayment(true);
+            setRoomForPayment(selectedRoom);
+          }
+        }}
+      />
+
+      <BookingHistory
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        bookings={user?.bookings || []}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        activeTab={activeTab}
+        onTabSwitch={setActiveTab}
+        onLogin={handleLogin}
+        onRegister={handleRegister}
+      />
 
       {/* Explore Section */}
       <section className="section__container explore__container" id="explore">
@@ -741,7 +712,7 @@ function App() {
           }}>
             <button 
               className="btn"
-              onClick={() => openModal('register')}
+              onClick={() => openAuthModal('register')}
               style={{
                 background: '#2563eb',
                 color: 'white',
@@ -760,538 +731,89 @@ function App() {
       </section>
 
       {/* FAQ Section */}
-      <section className="section__container faq__container">
-        <p className="section__subheader">FREQUENTLY ASKED QUESTIONS</p>
-        <h2 className="section__header">FAQs</h2>
-        <div className="faq__list">
-          {[
-            {
-              question: "How do I book a room?",
-              answer: `Simply click the "Book Your Room" button at the top of the page and follow these steps:
-                \n1. Create an account or log in
-                \n2. Select your preferred room type
-                \n3. Fill out the booking form
-                \n4. Submit your application
-                \nOur team will review and confirm your reservation within 24 hours.`
-            },
-            {
-              question: "What documents do I need?",
-              answer: `To complete your booking, please prepare:
-                \n• Valid student ID
-                \n• University admission letter
-                \n• Recent passport-sized photograph
-                \n• Proof of payment
-                \nAll documents can be uploaded digitally during the booking process.`
-            },
-            {
-              question: "Are visitors allowed?",
-              answer: `Yes, we allow visitors during these hours:
-                \n• Weekdays: 10:00 AM - 8:00 PM
-                \n• Weekends: 10:00 AM - 10:00 PM
-                \nAll visitors must sign in at the security desk and follow hostel guidelines.
-                \nOvernight guests are not permitted for security reasons.`
-            },
-            {
-              question: "Is there 24/7 security?",
-              answer: `Yes, we maintain comprehensive security measures:
-                \n• 24/7 security personnel
-                \n• CCTV surveillance throughout the premises
-                \n• Electronic access cards for all entrances
-                \n• Emergency response system
-                \n• Regular security patrols`
-            },
-            {
-              question: "What amenities are included?",
-              answer: `Your room fee includes access to:
-                \n• High-speed Wi-Fi
-                \n• Study lounges on each floor
-                \n• Fully equipped kitchen facilities
-                \n• Laundry room
-                \n• Common room with TV
-                \n• Bicycle storage
-                \n• Regular cleaning service`
-            }
-          ].map((faq, index) => (
-            <div 
-              key={index}
-              className={`faq__item ${activeFaq === index ? 'active' : ''}`}
-              onClick={() => setActiveFaq(activeFaq === index ? null : index)}
-            >
-              <h4>{faq.question}</h4>
-              <p style={{ whiteSpace: 'pre-line' }}>{faq.answer}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      <FAQ />
 
     
       {/* About Section */}
-      <section className="section__container about__container" id="about">
-        <div className="about__image">
-          <img src="/assets/about.jpg" alt="About Twelve Hostel" />
-        </div>
-        <div className="about__content">
-          <p className="section__subheader">ABOUT TWELVE HOSTEL</p>
-          <h2 className="section__header">Student Living Made Simple</h2>
-          <p className="section__description">
-            Twelve Hostel is dedicated to providing students with a safe, affordable, and vibrant living experience right on campus. Choose from a range of room options, enjoy modern facilities, and become part of a welcoming student community. Your comfort and success are our priority!
-          </p>
-          <div className="about__btn">
-            <button className="btn" id="discover-more-btn" type="button" onClick={() => handleMoreInfo('about')}>Discover More</button>
-          </div>
-        </div>
-      </section>
+      <About onDiscover={() => handleMoreInfo('about')} />
 
       {/* Rooms Section */}
-      <section className="section__container room__container">
-        <p className="section__subheader">ROOMS AT TWELVE HOSTEL</p>
-        <h2 className="section__header">Find Your Ideal Student Room</h2>
-        {/* Professional Filter Bar */}
-        <form className="room__filter__bar" onSubmit={handleFilter} style={{display:'flex',flexWrap:'wrap',gap:'0.5rem'}}>
-          <select className="filter-select" value={roomType} onChange={e => setRoomType(e.target.value)}>
-            <option value="">All Types</option>
-            <option value="1in1">1 in 1</option>
-            <option value="2in1">2 in 1</option>
-            <option value="3in1">3 in 1</option>
-            <option value="4in1">4 in 1</option>
-          </select>
-          <select className="filter-select" value={roomFloor} onChange={e => setRoomFloor(e.target.value)}>
-            <option value="">All Floors</option>
-            <option value="basement">Basement</option>
-            <option value="ground">Ground</option>
-            <option value="first">First</option>
-            <option value="second">Second</option>
-            <option value="third">Third</option>
-            <option value="fourth">Fourth</option>
-            <option value="fifth">Fifth</option>
-          </select>
-          <select className="filter-select" value={roomPrice} onChange={e => setRoomPrice(e.target.value)}>
-            <option value="">All Prices</option>
-            <option value="15000">₵15,000+</option>
-            <option value="10000">₵10,000+</option>
-            <option value="8500">₵8,500+</option>
-            <option value="6500">₵6,500+</option>
-          </select>
-          <select className="filter-select" value={roomAvailability} onChange={e => setRoomAvailability(e.target.value)}>
-            <option value="">All</option>
-            <option value="available">Available</option>
-            <option value="reserved">Reserved</option>
-          </select>
-          <input
-            type="text"
-            className="filter-search"
-            placeholder="Search Room Name"
-            aria-label="Search Room Name"
-            value={roomSearch}
-            onChange={e => setRoomSearch(e.target.value)}
-          />
-          <button className="btn" type="submit">Filter</button>
-        </form>
-        {/* Room Cards */}
-        <div className="room__grid" id="room-grid">
-          {loading ? (
-            <div style={{gridColumn:'1/-1',textAlign:'center',padding:'2rem'}}>Loading rooms...</div>
-          ) : error ? (
-            <div style={{gridColumn:'1/-1',textAlign:'center',padding:'2rem',color:'#ef4444'}}>{error}</div>
-          ) : filteredRooms.length === 0 ? (
-            <div style={{gridColumn:'1/-1',textAlign:'center',padding:'2rem',color:'#888'}}>No rooms found matching your criteria.</div>
-          ) : (
-            filteredRooms.map(room => (
-              <div className="room__card" key={room.name}>
-                <div className="room__card__image">
-                  <img src={room.img} alt={room.name} />
-                  <div className="room__card__icons">
-                    {room.type === '1in1' && <span><i className="ri-user-fill"></i></span>}
-                    {room.type !== '1in1' && <span><i className="ri-group-fill"></i></span>}
-                    <span><i className="ri-book-fill"></i></span>
-                    <span><i className="ri-shield-star-line"></i></span>
-                  </div>
-                </div>
-                <div className="room__card__details">
-                  <h4>{room.name}</h4>
-                  <p>{room.desc}</p>
-                  <h5>₵{room.price.toLocaleString()}/year</h5>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    margin: '0.5rem 0',
-                    padding: '0.5rem',
-                    borderRadius: '4px',
-                    background: room.availableBedspaces > 0 ? '#dcfce7' : '#fee2e2',
-                    color: room.availableBedspaces > 0 ? '#166534' : '#991b1b',
-                    fontSize: '0.9rem',
-                    fontWeight: '500'
-                  }}>
-                    <span>{room.availableBedspaces} of {room.totalBedspaces} bedspaces available</span>
-                  </div>
-                  <button 
-                    className="btn" 
-                    onClick={() => handleBookNow(room)}
-                    disabled={room.availableBedspaces === 0}
-                    style={{
-                      opacity: room.availableBedspaces === 0 ? 0.6 : 1,
-                      cursor: room.availableBedspaces === 0 ? 'not-allowed' : 'pointer'
-                    }}
-                  >
-                    {room.availableBedspaces > 0 ? 'Book Now' : 'Fully Occupied'}
-                  </button>
-                  <button className="btn room-details-btn" aria-label={`View Details for ${room.name}`} onClick={() => openRoomDetails(room)}>View Details</button>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        {/* Booking History Button */}
-        <div style={{textAlign:'right',marginTop:'1.5rem'}}>
-          <button className="btn" id="booking-history-btn" type="button" onClick={openHistory}>View Booking History</button>
-        </div>
-      </section>
-
+      <Rooms 
+        rooms={filteredRooms}
+        loading={loading}
+        error={error}
+        filters={{
+          roomType,
+          roomFloor,
+          roomPrice,
+          roomAvailability,
+          roomSearch
+        }}
+        onFilterChange={{
+          onTypeChange: setRoomType,
+          onFloorChange: setRoomFloor,
+          onPriceChange: setRoomPrice,
+          onAvailabilityChange: setRoomAvailability,
+          onSearchChange: setRoomSearch
+        }}
+        onRoomSelect={room => {
+          setSelectedRoom(room);
+          setShowRoomDetails(true);
+        }}
+        onBookNow={room => {
+          if (!user) {
+            setActiveTab('login');
+            setShowModal(true);
+          } else {
+            setShowPayment(true);
+            setRoomForPayment(room);
+          }
+        }}
+        onViewHistory={() => setShowHistory(true)}
+      />
       {/* Booking History Modal */}
-      {showHistory && (
-        <div className="login-modal" style={{display:'flex',position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.5)',zIndex:1000,alignItems:'center',justifyContent:'center'}}>
-          <div className="login-modal-content" style={{maxWidth:'420px',width:'100%'}}>
-            <h2 style={{marginBottom:'1.5rem',color:'#2d3748',fontWeight:600}}>Booking History</h2>
-            <table style={{width:'100%',marginBottom:'1rem',borderCollapse:'collapse'}}>
-              <thead>
-                <tr style={{background:'#f3f4f6'}}>
-                  <th style={{padding:'0.5rem',textAlign:'left'}}>Room</th>
-                  <th style={{padding:'0.5rem',textAlign:'left'}}>Bedspace</th>
-                  <th style={{padding:'0.5rem',textAlign:'left'}}>Year</th>
-                  <th style={{padding:'0.5rem',textAlign:'left'}}>Status</th>
-                  <th style={{padding:'0.5rem',textAlign:'left'}}>Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {user?.bookings.map((b, i) => (
-                  <tr key={i}>
-                    <td style={{padding:'0.5rem'}}>{b.room}</td>
-                    <td style={{padding:'0.5rem'}}>{b.bedspace || 'N/A'}</td>
-                    <td style={{padding:'0.5rem'}}>{b.year}</td>
-                    <td style={{padding:'0.5rem'}}>{b.status}</td>
-                    <td style={{padding:'0.5rem'}}>₵{b.price.toLocaleString()}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <button className="btn" style={{background:'#f3f4f6',color:'#333',marginTop:'1rem',borderRadius:'8px'}} onClick={closeHistory}>Close</button>
-          </div>
-        </div>
-      )}
+      <BookingHistory
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        bookings={user?.bookings || []}
+      />
 
       {/* Room Details Modal */}
-      {showRoomDetails && selectedRoom && (
-        <div className="login-modal" style={{display:'flex',position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.5)',zIndex:1000,alignItems:'center',justifyContent:'center'}}>
-          <div className="login-modal-content" style={{maxWidth:'1000px',width:'100%',maxHeight:'90vh',overflowY:'auto',padding:'2rem'}}>
-            {/* Image Gallery */}
-            <div style={{marginBottom:'2rem'}}>
-              <div style={{
-                position:'relative',
-                width:'100%',
-                paddingBottom:'50%',
-                borderRadius:'12px',
-                overflow:'hidden',
-                backgroundColor:'#f8fafc',
-                marginBottom:'1rem'
-              }}>
-                <img
-                  src={selectedRoom.img}
-                  alt={selectedRoom.name}
-                  style={{
-                    position:'absolute',
-                    top:0,
-                    left:0,
-                    width:'100%',
-                    height:'100%',
-                    objectFit:'contain'
-                  }}
-                />
-              </div>
-              <div style={{
-                display:'grid',
-                gridTemplateColumns:'repeat(auto-fit, minmax(150px, 1fr))',
-                gap:'1rem',
-                padding:'0.5rem'
-              }}>
-                {selectedRoom.images?.map((img, index) => (
-                  <div
-                    key={index}
-                    style={{
-                      position:'relative',
-                      paddingBottom:'75%',
-                      borderRadius:'8px',
-                      overflow:'hidden',
-                      cursor:'pointer',
-                      border: selectedRoom.img === img ? '3px solid #2563eb' : '3px solid transparent'
-                    }}
-                    onClick={() => setSelectedRoom({...selectedRoom, img})}
-                  >
-                    <img
-                      src={img}
-                      alt={`${selectedRoom.name} view ${index + 1}`}
-                      style={{
-                        position:'absolute',
-                        top:0,
-                        left:0,
-                        width:'100%',
-                        height:'100%',
-                        objectFit:'cover'
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+      <RoomDetailsModal 
+        isOpen={showRoomDetails}
+        onClose={() => setShowRoomDetails(false)}
+        room={selectedRoom}
+        onImageSelect={(img) => setSelectedRoom(prev => ({...prev, img}))}
+        onBook={() => {
+          setShowRoomDetails(false);
+          if (!user) {
+            setActiveTab('login');
+            setShowModal(true);
+          } else {
+            setShowPayment(true);
+            setRoomForPayment(selectedRoom);
+          }
+        }}
+      />
 
-            {/* Room Info */}
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2rem'}}>
-              <div>
-                <h2 style={{marginBottom:'0.5rem',color:'#2d3748',fontWeight:600}}>{selectedRoom.name}</h2>
-                <p style={{marginBottom:'1rem'}}>{selectedRoom.desc}</p>
-                <ul style={{marginBottom:'1rem',paddingLeft:'1.2rem'}}>
-                  <li><strong>Floor:</strong> {selectedRoom.floor.charAt(0).toUpperCase() + selectedRoom.floor.slice(1)}</li>
-                  <li><strong>Price:</strong> ₵{selectedRoom.price.toLocaleString()}/year</li>
-                  <li><strong>Availability:</strong> {selectedRoom.availability.charAt(0).toUpperCase() + selectedRoom.availability.slice(1)}</li>
-                </ul>
-              </div>
-
-              {/* Bedspace Availability Section */}
-              <div>
-                <h3 style={{marginBottom:'1rem',color:'#2d3748'}}>Bedspace Availability</h3>
-                <div style={{
-                  display:'flex',
-                  flexDirection:'column',
-                  gap:'1rem',
-                  padding:'1rem',
-                  background:'#f8fafc',
-                  borderRadius:'8px',
-                  marginBottom:'1rem'
-                }}>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontWeight:'500'}}>Total Bedspaces:</span>
-                    <span style={{
-                      background:'#e5e7eb',
-                      padding:'0.5rem 1rem',
-                      borderRadius:'4px',
-                      fontWeight:'600'
-                    }}>{selectedRoom.totalBedspaces}</span>
-                  </div>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontWeight:'500'}}>Available Bedspaces:</span>
-                    <span style={{
-                      background: selectedRoom.availableBedspaces > 0 ? '#dcfce7' : '#fee2e2',
-                      padding:'0.5rem 1rem',
-                      borderRadius:'4px',
-                      fontWeight:'600',
-                      color: selectedRoom.availableBedspaces > 0 ? '#166534' : '#991b1b'
-                    }}>{selectedRoom.availableBedspaces}</span>
-                  </div>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <span style={{fontWeight:'500'}}>Occupied Bedspaces:</span>
-                    <span style={{
-                      background:'#e5e7eb',
-                      padding:'0.5rem 1rem',
-                      borderRadius:'4px',
-                      fontWeight:'600'
-                    }}>{selectedRoom.totalBedspaces - selectedRoom.availableBedspaces}</span>
-                  </div>
-                </div>
-                
-                <div style={{
-                  padding:'1rem',
-                  background: selectedRoom.availableBedspaces > 0 ? '#dcfce7' : '#fee2e2',
-                  borderRadius:'8px',
-                  textAlign:'center',
-                  color: selectedRoom.availableBedspaces > 0 ? '#166534' : '#991b1b',
-                  fontWeight:'500'
-                }}>
-                  {selectedRoom.availableBedspaces > 0 
-                    ? `${selectedRoom.availableBedspaces} ${selectedRoom.availableBedspaces === 1 ? 'bedspace' : 'bedspaces'} available for booking!`
-                    : 'Currently fully occupied'
-                  }
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{display:'flex',gap:'1rem',marginTop:'2rem'}}>
-              <button className="btn" onClick={() => handleBookNow(selectedRoom)} style={{flex:1}}>Book Now</button>
-              <button className="btn" style={{flex:1,background:'#f3f4f6',color:'#333'}} onClick={closeRoomDetails}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Facilities / Service Section */}
-      <section className="service" id="service">
-        <div className="section__container service__container">
-          <div className="service__content">
-            <p className="section__subheader">EXPERIENCE LUXURY LIVING</p>
-            <h2 className="section__header">State-of-the-Art Student Facilities</h2>
-            <p className="section__description" style={{textAlign: 'center', maxWidth: '800px', margin: '0 auto 3rem'}}>
-              Discover a perfect blend of comfort, convenience, and modern amenities designed to enhance your university experience. Our facilities are carefully curated to support both your academic success and personal well-being.
-            </p>
-            <div className="service__grid">
-              <div className="service__item">
-                <div className="service__icon">
-                  <i className="ri-shield-star-line"></i>
-                </div>
-                <div className="service__details">
-                  <h3>Advanced Security</h3>
-                  <p>Experience peace of mind with our comprehensive security system featuring 24/7 CCTV surveillance, biometric access, and professional security staff.</p>
-                </div>
-              </div>
-              <div className="service__item">
-                <div className="service__icon">
-                  <i className="ri-wifi-line"></i>
-                </div>
-                <div className="service__details">
-                  <h3>Lightning-Fast WiFi</h3>
-                  <p>Stay connected with our premium fiber-optic network, offering dedicated high-speed bandwidth to every room for seamless online learning.</p>
-                </div>
-              </div>
-              <div className="service__item">
-                <div className="service__icon">
-                  <i className="ri-book-2-line"></i>
-                </div>
-                <div className="service__details">
-                  <h3>Learning Spaces</h3>
-                  <p>Focus on your studies in our purpose-built quiet zones, collaborative study pods, and fully-equipped 24-hour library facility.</p>
-                </div>
-              </div>
-              <div className="service__item">
-                <div className="service__icon">
-                  <i className="ri-restaurant-line"></i>
-                </div>
-                <div className="service__details">
-                  <h3>Gourmet Dining</h3>
-                  <p>Enjoy diverse culinary options in our modern cafeteria, featuring fresh, nutritious meals and comfortable social dining spaces.</p>
-                </div>
-              </div>
-              <div className="service__item">
-                <div className="service__icon">
-                  <i className="ri-t-shirt-line"></i>
-                </div>
-                <div className="service__details">
-                  <h3>Smart Laundry</h3>
-                  <p>Take advantage of our automated laundry system with app-controlled machines, real-time availability updates, and 24/7 access.</p>
-                </div>
-              </div>
-              <div className="service__item">
-                <div className="service__icon">
-                  <i className="ri-football-line"></i>
-                </div>
-                <div className="service__details">
-                  <h3>Active Lifestyle</h3>
-                  <p>Maintain your fitness goals with our state-of-the-art gym, multipurpose sports court, and dedicated recreation areas.</p>
-                </div>
-              </div>
-            </div>
-            <div style={{textAlign: 'center', marginTop: '3rem'}}>
-              <button className="btn" onClick={() => handleMoreInfo('explore')} style={{
-                padding: '1rem 2rem',
-                fontSize: '1.1rem',
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.3s ease'
-              }}>Explore All Amenities</button>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Facilities Section */}
+      <Facilities onExplore={() => handleMoreInfo('explore')} />
 
       {/* Payment Modal */}
-      {showPayment && roomForPayment && (
-        <div className="login-modal" style={{display:'flex',position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.5)',zIndex:1000,alignItems:'center',justifyContent:'center'}}>
-          <div className="login-modal-content" style={{maxWidth:'360px',width:'100%',padding:'1.5rem'}}>
-            <h2 style={{marginBottom:'1rem',color:'#2d3748',fontWeight:600}}>Mobile Money Payment</h2>
-            
-            {bookingStatus.status ? (
-              <div style={{
-                padding:'1rem',
-                borderRadius:'8px',
-                marginBottom:'1.5rem',
-                background: bookingStatus.status === 'success' ? '#f0fdf4' : '#fef2f2',
-                border: `1px solid ${bookingStatus.status === 'success' ? '#86efac' : '#fecaca'}`,
-                color: bookingStatus.status === 'success' ? '#166534' : '#991b1b'
-              }}>
-                <p style={{fontSize:'0.9rem',textAlign:'center'}}>{bookingStatus.message}</p>
-              </div>
-            ) : (
-              <>
-                <div style={{marginBottom:'1.5rem',padding:'1rem',background:'#f8fafc',borderRadius:'8px',border:'1px solid #e2e8f0'}}>
-                  <p style={{marginBottom:'0.5rem'}}><strong>{roomForPayment.name}</strong></p>
-                  <p style={{marginBottom:'1rem',color:'#2563eb',fontSize:'1.25rem',fontWeight:600}}>₵{roomForPayment.price.toLocaleString()}</p>
-                  
-                  <div style={{display:'grid',gap:'0.5rem'}}>
-                    {[
-                      { value: 'mtn', label: 'MTN MoMo' },
-                      { value: 'vodafone', label: 'Vodafone Cash' },
-                      { value: 'airteltigo', label: 'AirtelTigo Money' }
-                    ].map(provider => (
-                      <label key={provider.value} style={{
-                        padding:'0.5rem',
-                        border:'1px solid #e2e8f0',
-                        borderRadius:'6px',
-                        cursor: isProcessing ? 'not-allowed' : 'pointer',
-                        display:'flex',
-                        alignItems:'center',
-                        gap:'0.5rem',
-                        background: selectedPayment === provider.value ? '#eff6ff' : '#fff',
-                        opacity: isProcessing ? 0.7 : 1
-                      }}>
-                        <input
-                          type="radio"
-                          name="momoProvider"
-                          value={provider.value}
-                          checked={selectedPayment === provider.value}
-                          onChange={() => handlePaymentSelect(provider.value)}
-                          disabled={isProcessing}
-                        />
-                        <span>{provider.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div style={{display:'flex',gap:'0.5rem'}}>
-                  <button 
-                    className="btn" 
-                    style={{
-                      flex:1,
-                      background:'#f3f4f6',
-                      color:'#333',
-                      cursor: isProcessing ? 'not-allowed' : 'pointer',
-                      opacity: isProcessing ? 0.7 : 1
-                    }} 
-                    onClick={() => {
-                      if (!isProcessing) {
-                        setShowPayment(false);
-                        setSelectedPayment('');
-                        setRoomForPayment(null);
-                      }
-                    }}
-                    disabled={isProcessing}
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    className="btn" 
-                    style={{
-                      flex:1,
-                      background: isProcessing ? '#94a3b8' : (selectedPayment ? '#2563eb' : '#94a3b8'),
-                      cursor: isProcessing || !selectedPayment ? 'not-allowed' : 'pointer'
-                    }}
-                    onClick={handlePaymentSubmit}
-                    disabled={isProcessing || !selectedPayment}
-                  >
-                    {isProcessing ? 'Processing...' : 'Pay Now'}
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      <PaymentModal
+        isOpen={showPayment}
+        onClose={() => {
+          setShowPayment(false);
+          setSelectedPayment('');
+          setRoomForPayment(null);
+        }}
+        room={roomForPayment}
+        selectedPayment={selectedPayment}
+        onPaymentSelect={handlePaymentSelect}
+        onPaymentSubmit={handlePaymentSubmit}
+        isProcessing={isProcessing}
+        bookingStatus={bookingStatus}
+      />
 
       {/* User Profile Modal */}
       {showProfile && user && (
@@ -1411,54 +933,10 @@ function App() {
         </div>
       )}
 
-      {/* Footer Section */}
-      <footer className="footer" id="contact">
-        <div className="section__container footer__container">
-          <div className="footer__col">
-            <div className="logo">
-              <a href="#home" onClick={e => handleNavClick(e, 'home')}><img src="/assets/logo.png" alt="Twelve Hostel Logo" /></a>
-            </div>
-            <p className="section__description">
-              At Twelve Hostel, we help students find the perfect room for their campus journey. Enjoy comfort, security, and a vibrant student life – all in one place!
-            </p>
-          </div>
-          <div className="footer__col">
-            <h4>QUICK LINKS</h4>
-            <ul className="footer__links">
-              <li><a href="#" onClick={e => handleNavClick(e, 'home')}>Book a Room</a></li>
-              <li><a href="#" onClick={e => handleNavClick(e, 'room-grid')}>Room Types & Fees</a></li>
-              <li><a href="#" onClick={e => handleNavClick(e, 'service')}>Facilities</a></li>
-              <li><a href="#" onClick={e => handleNavClick(e, 'faq')}>FAQs</a></li>
-              <li><a href="#" onClick={e => handleNavClick(e, 'contact')}>Student Support</a></li>
-            </ul>
-          </div>
-          <div className="footer__col">
-            <h4>OUR FACILITIES</h4>
-            <ul className="footer__links">
-              <li><a href="#" onClick={e => handleNavClick(e, 'service')}>Wi-Fi & Study Areas</a></li>
-              <li><a href="#" onClick={e => handleNavClick(e, 'service')}>Laundry Services</a></li>
-              <li><a href="#" onClick={e => handleNavClick(e, 'service')}>Cafeteria</a></li>
-              <li><a href="#" onClick={e => handleNavClick(e, 'service')}>Security & CCTV</a></li>
-            </ul>
-          </div>
-          <div className="footer__col">
-            <h4>CONTACT US</h4>
-            <ul className="footer__links">
-              <li><a href="mailto:contact@twelvehostel.com">contact@twelvehostel.com</a></li>
-            </ul>
-            <div className="footer__socials">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer"><img src="/assets/facebook.png" alt="facebook" /></a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer"><img src="/assets/instagram.png" alt="instagram" /></a>
-              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer"><img src="/assets/youtube.png" alt="youtube" /></a>
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer"><img src="/assets/twitter.png" alt="twitter" /></a>
-            </div>
-          </div>
-        </div>
-        <div className="footer__bar">
-          Copyright © 2025 Twelve Hostel. All rights reserved.
-        </div>
-      </footer>
+      {/* Footer */}
+      <Footer onNavClick={handleNavClick} />
     </>
-  );   
+  );
 }
+
 export default App;
