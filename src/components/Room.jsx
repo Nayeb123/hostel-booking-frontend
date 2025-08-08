@@ -5,7 +5,7 @@ const Room = ({ room, onDetailsClick }) => {
   return (
     <div className="room__card">
       <div className="room__image">
-        <img src={room.img} alt={room.name} />
+        <img src={room.img.replace('/assets/', '/src/assets/')} alt={room.name} />
       </div>
       <div className="room__content">
         <h3>{room.name}</h3>
