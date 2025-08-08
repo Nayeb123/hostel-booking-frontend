@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function NavBar({ user, onProfileClick, onNavClick }) {
+const NavBar = ({ user, onNavClick, onProfileClick, onLogout, onBookRoom, onLogin }) => {
   return (
     <nav>
       <div className="nav__bar">
@@ -10,22 +10,31 @@ export default function NavBar({ user, onProfileClick, onNavClick }) {
           </a>
         </div>
         <div className="nav__menu__btn" id="menu-btn">
-          <div className="line"></div>
+          <i className="ri-menu-line"></i>
         </div>
-        <ul className="nav__links" id="nav-links">
-          <li><a href="#home" onClick={e => onNavClick(e, 'home')}>Home</a></li>
-          <li><a href="#about" onClick={e => onNavClick(e, 'about')}>About</a></li>
-          <li><a href="#service" onClick={e => onNavClick(e, 'service')}>Facilities</a></li>
-          <li><a href="#contact" onClick={e => onNavClick(e, 'contact')}>Contact</a></li>
-          {user && (
-            <li>
-              <a href="#" onClick={onProfileClick}>
-                {user.username}
-              </a>
-            </li>
-          )}
-        </ul>
       </div>
+      <ul className="nav__links" id="nav-links">
+        <li><a href="#home" onClick={e => onNavClick(e, 'home')}>Home</a></li>
+        <li><a href="#about" onClick={e => onNavClick(e, 'about')}>About</a></li>
+        <li><a href="#service" onClick={e => onNavClick(e, 'service')}>Facilities</a></li>
+        <li><a href="#contact" onClick={e => onNavClick(e, 'contact')}>Contact</a></li>
+      </ul>
+      {user ? (
+        <>
+          <button className="btn nav__btn" onClick={onProfileClick} style={{display:'flex',alignItems:'center',gap:'0.5rem'}}>
+            <i className="ri-user-line"></i>
+            {user.username}
+          </button>
+          <button className="btn nav__btn" onClick={onLogout}>Logout</button>
+        </>
+      ) : (
+        <>
+          <button className="btn nav__btn" id="book-room-btn" type="button" onClick={onBookRoom}>Book Your Room</button>
+          <button className="btn nav__btn" id="login-btn" type="button" onClick={onLogin}>Login / Register</button>
+        </>
+      )}
     </nav>
   );
-}
+};
+
+export default NavBar;
